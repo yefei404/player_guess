@@ -1,536 +1,737 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>双人猜数字 - Player Guess</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>况两把 · 猜球员</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1b2a;--surface:#162032;--surface2:#1e2d3d;--border:#2a3f55;
+  --green:#22c55e;--green-bg:#14532d;
+  --yellow:#f59e0b;--yellow-bg:#78350f;
+  --red-bg:#1f2937;--text:#e2e8f0;--muted:#64748b;--accent:#38bdf8;
+}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px}
+.header{text-align:center;margin-bottom:14px}
+.logo{font-size:2rem;font-weight:900;color:var(--green);letter-spacing:3px;text-shadow:0 0 30px rgba(34,197,94,.3)}
+.subtitle{color:var(--muted);font-size:.76rem;margin-top:3px;letter-spacing:1px}
+.header-btns{margin-top:10px;display:flex;gap:8px;justify-content:center}
+.hbtn{padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface2);color:var(--muted);
+  font-family:inherit;transition:all .15s}
+.hbtn:hover{border-color:var(--accent);color:var(--accent)}
+.timer-wrap{width:100%;max-width:440px;margin-bottom:12px}
+.timer-bar-bg{background:var(--surface2);border-radius:99px;height:8px;overflow:hidden}
+.timer-bar{height:100%;border-radius:99px;transition:width .95s linear,background .5s;background:var(--green)}
+.timer-label{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);margin-top:4px}
+.timer-num{font-weight:700;font-size:.86rem;color:var(--text)}
+.stats-bar{display:flex;gap:18px;margin-bottom:12px;font-size:.8rem;color:var(--muted)}
+.stat-val{color:var(--text);font-weight:700}
+.legend{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.search-wrap{position:relative;width:100%;max-width:440px;margin-bottom:10px}
+.search-input{width:100%;padding:11px 16px;background:var(--surface2);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:.93rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;font-family:inherit}
+.search-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.1)}
+.search-input::placeholder{color:var(--muted)}
+.autocomplete{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface2);
+  border:1px solid var(--border);border-radius:10px;overflow-y:auto;max-height:280px;
+  z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none}
+.ac-item{padding:9px 16px;cursor:pointer;display:flex;justify-content:space-between;
+  align-items:center;font-size:.85rem;transition:background .12s}
+.ac-item:hover{background:var(--border)}
+.ac-item.disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.ac-meta{font-size:.7rem;color:var(--muted);margin-left:8px;white-space:nowrap}
+.ac-en{color:var(--muted);font-size:.72rem;margin-left:5px}
+.guess-btn{width:100%;max-width:440px;padding:11px;background:var(--green);color:#0a1a0a;
+  border:none;border-radius:10px;font-size:.93rem;font-weight:800;letter-spacing:1px;
+  cursor:pointer;margin-bottom:16px;transition:background .2s,transform .1s;font-family:inherit}
+.guess-btn:hover:not(:disabled){background:#16a34a;transform:translateY(-1px)}
+.guess-btn:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;transform:none}
+.message{padding:11px 18px;border-radius:10px;font-size:.9rem;font-weight:700;
+  text-align:center;margin-bottom:10px;max-width:440px;width:100%;display:none}
+.message.win    {background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+.message.lose   {background:#450a0a;color:#f87171;border:1px solid #f87171}
+.message.timeout{background:#1c1a00;color:var(--yellow);border:1px solid var(--yellow)}
+.answer-reveal{display:none;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:12px 18px;max-width:440px;width:100%;margin-bottom:12px;text-align:center}
+.ar-label{font-size:.66rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.ar-name{font-size:1.2rem;font-weight:900;color:var(--green)}
+.ar-en  {font-size:.78rem;color:var(--muted);margin-top:2px}
+.ar-detail{font-size:.76rem;color:var(--muted);margin-top:4px}
+.action-btns{display:none;gap:10px;margin-bottom:18px}
+.btn-new{padding:8px 24px;border-radius:8px;font-size:.83rem;font-weight:700;cursor:pointer;
+  border:none;background:var(--green);color:#0a1a0a;font-family:inherit;transition:opacity .2s}
+.btn-new:hover{opacity:.85}
+.table-wrap{width:100%;max-width:840px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.guesses-table{width:100%;border-collapse:separate;border-spacing:0 4px;min-width:600px}
+.guesses-table thead th{color:var(--muted);font-size:.65rem;text-transform:uppercase;
+  letter-spacing:1.5px;padding:0 6px 7px;text-align:center;font-weight:600}
+.guesses-table thead th:first-child{text-align:left}
+.guess-row{animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.guess-row td{padding:8px 7px;text-align:center;font-size:.77rem;font-weight:700}
+.guess-row td:first-child{text-align:left;padding-left:13px;border-radius:8px 0 0 8px;
+  background:var(--surface);font-size:.8rem;white-space:nowrap;min-width:120px}
+.guess-row td:last-child{border-radius:0 8px 8px 0}
+.cell-correct{background:var(--green-bg);color:var(--green)}
+.cell-close  {background:var(--yellow-bg);color:var(--yellow)}
+.cell-wrong  {background:var(--red-bg);color:var(--muted)}
+.empty-state{text-align:center;color:var(--muted);font-size:.8rem;padding:26px 0}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      text-align: center;
-      margin-bottom: 8px;
-      color: #e94560;
-    }
-
-    #subtitle {
-      font-size: 0.9rem;
-      color: #888;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-
-    #game-container {
-      width: 100%;
-      max-width: 800px;
-    }
-
-    /* ——— SETUP SCREEN ——— */
-    #setup-screen {
-      background: #16213e;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-    }
-
-    #setup-screen label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.95rem;
-      color: #ccc;
-    }
-
-    #setup-screen input[type=number] {
-      width: 120px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 2px solid #0f3460;
-      background: #0f3460;
-      color: #fff;
-      font-size: 1.1rem;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    #setup-screen input:focus { outline: none; border-color: #e94560; }
-
-    .mode-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
-
-    .mode-btn {
-      padding: 14px 24px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.1s, opacity 0.2s;
-    }
-
-    .mode-btn:active { transform: scale(0.96); }
-
-    #btn-p1 { background: #e94560; color: #fff; }
-    #btn-p2 { background: #0f3460; color: #fff; border: 2px solid #e94560; }
-
-    /* ——— PLAY SCREEN ——— */
-    #play-screen { display: none; }
-
-    .players-wrap {
-      display: flex;
-      gap: 16px;
-      width: 100%;
-    }
-
-    /* Stack vertically on narrow screens */
-    @media (max-width: 520px) {
-      .players-wrap { flex-direction: column; }
-    }
-
-    .player-panel {
-      flex: 1;
-      background: #16213e;
-      border-radius: 16px;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border: 2px solid transparent;
-      transition: border-color 0.2s;
-    }
-
-    .player-panel.active { border-color: #e94560; }
-    .player-panel.winner { border-color: #f0c040; background: #1e1e0e; }
-
-    .player-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .player-score {
-      font-size: 0.85rem;
-      color: #aaa;
-      margin-bottom: 12px;
-    }
-
-    .hint-display {
-      font-size: 2rem;
-      margin-bottom: 8px;
-      min-height: 2.4rem;
-    }
-
-    .hint-text {
-      font-size: 0.85rem;
-      color: #aaa;
-      margin-bottom: 14px;
-      min-height: 1.2rem;
-    }
-
-    .guess-history {
-      width: 100%;
-      max-height: 120px;
-      overflow-y: auto;
-      margin-bottom: 14px;
-      font-size: 0.82rem;
-      color: #bbb;
-      text-align: left;
-      padding: 0 4px;
-    }
-
-    .guess-history div { padding: 2px 0; border-bottom: 1px solid #0f3460; }
-    .guess-history div.win { color: #f0c040; font-weight: 700; }
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .guess-input {
-      flex: 1;
-      padding: 12px 8px;
-      border-radius: 10px;
-      border: 2px solid #0f3460;
-      background: #0f3460;
-      color: #fff;
-      font-size: 1.1rem;
-      text-align: center;
-    }
-
-    .guess-input:focus { outline: none; border-color: #e94560; }
-    .guess-input:disabled { opacity: 0.4; }
-
-    .submit-btn {
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: none;
-      background: #e94560;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.1s;
-      white-space: nowrap;
-    }
-
-    .submit-btn:active { transform: scale(0.95); }
-    .submit-btn:disabled { background: #555; cursor: default; }
-
-    /* ——— STATUS BAR ——— */
-    #status-bar {
-      text-align: center;
-      margin-top: 16px;
-      font-size: 1rem;
-      color: #e94560;
-      min-height: 1.4rem;
-    }
-
-    /* ——— CONTROLS ——— */
-    #controls {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-
-    .ctrl-btn {
-      padding: 10px 22px;
-      border-radius: 10px;
-      border: none;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    #btn-restart { background: #0f3460; color: #fff; }
-    #btn-new-round { background: #e94560; color: #fff; }
-
-    /* ——— CONTROLLER KEY BADGE ——— */
-    .ctrl-key-badge {
-      display: inline-block;
-      background: #0f3460;
-      border: 1px solid #e94560;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 0.75rem;
-      color: #e94560;
-      font-family: monospace;
-      letter-spacing: 0.05em;
-      margin-bottom: 10px;
-    }
-
-    /* ——— GAMEPAD STATUS ——— */
-    .gamepad-status {
-      font-size: 0.75rem;
-      color: #555;
-      margin-bottom: 6px;
-      transition: color 0.3s;
-    }
-    .gamepad-status.connected { color: #4ec9b0; }
-  </style>
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;
+  display:none;align-items:flex-start;justify-content:center;padding:20px 10px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:980px;margin:auto;display:flex;flex-direction:column;max-height:90vh}
+.modal-header{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-size:1rem;font-weight:800}
+.modal-count{font-size:.74rem;color:var(--muted);margin-left:8px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.4rem;
+  cursor:pointer;line-height:1;padding:0 4px;transition:color .15s}
+.modal-close:hover{color:var(--text)}
+.modal-filters{padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;align-items:center}
+.modal-search{flex:1;min-width:120px;padding:7px 11px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:8px;color:var(--text);
+  font-size:.8rem;outline:none;font-family:inherit}
+.modal-search:focus{border-color:var(--green)}
+.modal-search::placeholder{color:var(--muted)}
+.fsel{padding:7px 9px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:.78rem;outline:none;font-family:inherit;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+.range-group{display:flex;align-items:center;gap:4px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:8px;padding:4px 9px}
+.range-label{font-size:.72rem;color:var(--muted);white-space:nowrap;margin-right:2px}
+.range-input{width:46px;background:transparent;border:none;outline:none;color:var(--text);
+  font-size:.78rem;font-family:inherit;text-align:center;-moz-appearance:textfield}
+.range-input::-webkit-outer-spin-button,.range-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.range-input::placeholder{color:var(--muted)}
+.range-sep{color:var(--muted);font-size:.75rem}
+.range-unit{font-size:.7rem;color:var(--muted)}
+.filter-clear{padding:7px 11px;background:none;border:1px solid var(--border);
+  border-radius:8px;color:var(--muted);font-size:.74rem;cursor:pointer;
+  font-family:inherit;transition:all .15s}
+.filter-clear:hover{border-color:#f87171;color:#f87171}
+.modal-sortbar{padding:7px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap}
+.sort-label{font-size:.72rem;color:var(--muted);white-space:nowrap;margin-right:2px}
+.sort-btn{padding:4px 11px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:inherit;
+  transition:all .15s;white-space:nowrap}
+.sort-btn.active,.sort-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.07)}
+.modal-body{overflow-y:auto;padding:12px 16px;flex:1}
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:7px}
+.player-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;
+  padding:9px 11px;transition:border-color .15s}
+.player-card:hover{border-color:var(--green)}
+.pc-name{font-size:.86rem;font-weight:800}
+.pc-en{font-size:.65rem;color:var(--muted);margin-top:2px;line-height:1.3}
+.pc-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.pc-tag{font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:4px;
+  background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.pc-tag.pos-GK {color:#a78bfa;border-color:#4c1d95}
+.pc-tag.pos-DEF{color:#60a5fa;border-color:#1e3a5f}
+.pc-tag.pos-MID{color:#34d399;border-color:#064e3b}
+.pc-tag.pos-FW {color:#fb923c;border-color:#431407}
+.pc-tag.retired{color:var(--muted);font-style:italic}
+.modal-empty{text-align:center;color:var(--muted);padding:40px 0;font-size:.85rem}
+</style>
 </head>
 <body>
 
-<div id="game-container">
+<div class="header">
+  <div class="logo">况两把</div>
+  <div class="subtitle">猜出神秘球员 · 6次机会 · 200秒</div>
+  <div class="header-btns">
+    <button class="hbtn" onclick="openModal()">📋 球员库</button>
+  </div>
+</div>
 
-  <!-- SETUP -->
-  <div id="setup-screen">
-    <h1>🎯 双人猜数字</h1>
-    <p id="subtitle">两人轮流猜，先猜中者得分！</p>
+<div class="timer-wrap">
+  <div class="timer-bar-bg"><div class="timer-bar" id="timerBar"></div></div>
+  <div class="timer-label">
+    <span>剩余时间</span><span class="timer-num"><span id="timerNum">200</span>s</span>
+  </div>
+</div>
 
-    <label for="max-num">数字范围：1 ~ ?</label>
-    <input type="number" id="max-num" value="100" min="10" max="9999" />
+<div class="stats-bar">
+  <span>剩余机会 <span class="stat-val" id="remaining">6</span></span>
+  <span>已猜 <span class="stat-val" id="guessCount">0</span></span>
+  <span id="todayLabel"></span>
+</div>
 
-    <p style="margin-bottom:16px; font-size:0.9rem; color:#888;">选择游戏模式</p>
-    <div class="mode-buttons">
-      <button class="mode-btn" id="btn-p1" onclick="startGame(1)">🧑 单人模式<br><small style="font-weight:400">挑战最少步数</small></button>
-      <button class="mode-btn" id="btn-p2" onclick="startGame(2)">👥 双人模式<br><small style="font-weight:400">iPad 双人对战</small></button>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green-bg);border:1px solid var(--green)"></div>完全正确</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-bg);border:1px solid var(--yellow)"></div>接近 (±5cm / ±5号)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red-bg);border:1px solid var(--border)"></div>错误</div>
+</div>
+
+<div class="search-wrap">
+  <input id="searchInput" class="search-input" type="text" placeholder="输入中文或英文名字搜索…" autocomplete="off" spellcheck="false">
+  <div class="autocomplete" id="autocomplete"></div>
+</div>
+<button class="guess-btn" id="guessBtn" disabled>猜一猜</button>
+
+<div class="message" id="message"></div>
+<div class="answer-reveal" id="answerReveal">
+  <div class="ar-label">正确答案</div>
+  <div class="ar-name" id="arName"></div>
+  <div class="ar-en"   id="arEn"></div>
+  <div class="ar-detail" id="arDetail"></div>
+</div>
+<div class="action-btns" id="actionBtns">
+  <button class="btn-new" onclick="startNewGame()">新开一局</button>
+</div>
+
+<div class="table-wrap">
+  <table class="guesses-table">
+    <thead><tr>
+      <th style="text-align:left">球员</th>
+      <th>身高</th><th>位置</th><th>球队</th><th>国籍</th><th>状态</th><th>号码</th>
+    </tr></thead>
+    <tbody id="guessesBody">
+      <tr><td colspan="7" class="empty-state">⬆ 开始猜测吧</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><span class="modal-title">球员库</span><span class="modal-count" id="modalCount"></span></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-filters">
+      <input class="modal-search" id="modalSearch" type="text" placeholder="搜索中文/英文…" autocomplete="off" oninput="renderModal()">
+      <select class="fsel" id="fPos" onchange="renderModal()">
+        <option value="">全部位置</option>
+        <option value="GK">门将</option>
+        <option value="DEF">后卫</option>
+        <option value="MID">中场</option>
+        <option value="FW">前锋</option>
+      </select>
+      <select class="fsel" id="fStatus" onchange="renderModal()">
+        <option value="">现役+退役</option>
+        <option value="现役">现役</option>
+        <option value="退役">退役</option>
+      </select>
+      <select class="fsel" id="fNat" onchange="renderModal()" style="min-width:96px">
+        <option value="">全部国籍</option>
+      </select>
+      <div class="range-group">
+        <span class="range-label">身高</span>
+        <input class="range-input" id="fHMin" type="number" placeholder="≥" min="150" max="220" oninput="renderModal()">
+        <span class="range-sep">–</span>
+        <input class="range-input" id="fHMax" type="number" placeholder="≤" min="150" max="220" oninput="renderModal()">
+        <span class="range-unit">cm</span>
+      </div>
+      <div class="range-group">
+        <span class="range-label">号码</span>
+        <input class="range-input" id="fNMin" type="number" placeholder="≥" min="1" max="99" oninput="renderModal()">
+        <span class="range-sep">–</span>
+        <input class="range-input" id="fNMax" type="number" placeholder="≤" min="1" max="99" oninput="renderModal()">
+      </div>
+      <button class="filter-clear" onclick="clearFilters()">重置</button>
+    </div>
+    <div class="modal-sortbar">
+      <span class="sort-label">排序：</span>
+      <button class="sort-btn active" id="sortName"   onclick="setSort('name')">姓名</button>
+      <button class="sort-btn"        id="sortHeight" onclick="setSort('height')">身高 ↕</button>
+      <button class="sort-btn"        id="sortNumber" onclick="setSort('number')">号码 ↕</button>
+      <button class="sort-btn"        id="sortPos"    onclick="setSort('pos')">位置</button>
+    </div>
+    <div class="modal-body">
+      <div class="player-grid" id="playerGrid"></div>
     </div>
   </div>
-
-  <!-- PLAY -->
-  <div id="play-screen">
-    <div class="players-wrap" id="players-wrap">
-      <!-- panels injected by JS -->
-    </div>
-    <div id="status-bar"></div>
-    <div id="controls">
-      <button class="ctrl-btn" id="btn-restart" onclick="backToSetup()">⚙️ 重新设置</button>
-      <button class="ctrl-btn" id="btn-new-round" onclick="newRound()" style="display:none">▶️ 下一局</button>
-    </div>
-  </div>
-
 </div>
 
 <script>
-/* =========================================================
-   STATE
-   ========================================================= */
-let secret, maxNum, numPlayers, currentPlayer, roundOver;
-let scores = [0, 0];
-let roundCount = 0;
+const MAX_G=6,TIME=200;
+const POS={GK:'门将',DEF:'后卫',MID:'中场',FW:'前锋'};
 
-const NAMES = ["玩家 1", "玩家 2"];
-const COLORS = ["#e94560", "#4ec9b0"];
+// ════════════════════════════════════════════════════
+// 球员数据库（250+ 人）
+// ════════════════════════════════════════════════════
+const PLAYERS=[
+/* ── 现役 前锋 ── */
+{name:"梅西",nameEN:"Lionel Messi",height:170,position:"FW",team:"迈阿密国际",nationality:"阿根廷",status:"现役",number:10},
+{name:"C罗",nameEN:"Cristiano Ronaldo",height:187,position:"FW",team:"利雅得胜利",nationality:"葡萄牙",status:"现役",number:7},
+{name:"姆巴佩",nameEN:"Kylian Mbappe",height:178,position:"FW",team:"皇家马德里",nationality:"法国",status:"现役",number:9},
+{name:"哈兰德",nameEN:"Erling Haaland",height:194,position:"FW",team:"曼彻斯特城",nationality:"挪威",status:"现役",number:9},
+{name:"内马尔",nameEN:"Neymar Jr",height:175,position:"FW",team:"利雅得新月",nationality:"巴西",status:"现役",number:10},
+{name:"萨拉赫",nameEN:"Mohamed Salah",height:175,position:"FW",team:"利物浦",nationality:"埃及",status:"现役",number:11},
+{name:"莱万多夫斯基",nameEN:"Robert Lewandowski",height:185,position:"FW",team:"巴塞罗那",nationality:"波兰",status:"现役",number:9},
+{name:"凯恩",nameEN:"Harry Kane",height:188,position:"FW",team:"拜仁慕尼黑",nationality:"英格兰",status:"现役",number:9},
+{name:"维尼修斯",nameEN:"Vinicius Junior",height:176,position:"FW",team:"皇家马德里",nationality:"巴西",status:"现役",number:7},
+{name:"本泽马",nameEN:"Karim Benzema",height:185,position:"FW",team:"吉达联合",nationality:"法国",status:"现役",number:9},
+{name:"萨卡",nameEN:"Bukayo Saka",height:178,position:"FW",team:"阿森纳",nationality:"英格兰",status:"现役",number:7},
+{name:"拉什福德",nameEN:"Marcus Rashford",height:180,position:"FW",team:"曼彻斯特联",nationality:"英格兰",status:"现役",number:10},
+{name:"孙兴慜",nameEN:"Son Heung-min",height:183,position:"FW",team:"热刺",nationality:"韩国",status:"现役",number:7},
+{name:"福登",nameEN:"Phil Foden",height:171,position:"FW",team:"曼彻斯特城",nationality:"英格兰",status:"现役",number:47},
+{name:"莱奥",nameEN:"Rafael Leao",height:188,position:"FW",team:"AC米兰",nationality:"葡萄牙",status:"现役",number:10},
+{name:"奥斯梅恩",nameEN:"Victor Osimhen",height:185,position:"FW",team:"加拉塔萨雷",nationality:"尼日利亚",status:"现役",number:9},
+{name:"雅马尔",nameEN:"Lamine Yamal",height:180,position:"FW",team:"巴塞罗那",nationality:"西班牙",status:"现役",number:19},
+{name:"科瓦拉茨赫利亚",nameEN:"Khvicha Kvaratskhelia",height:183,position:"FW",team:"巴黎圣日耳曼",nationality:"格鲁吉亚",status:"现役",number:77},
+{name:"登贝莱",nameEN:"Ousmane Dembele",height:178,position:"FW",team:"巴黎圣日耳曼",nationality:"法国",status:"现役",number:10},
+{name:"格拉利什",nameEN:"Jack Grealish",height:180,position:"FW",team:"曼彻斯特城",nationality:"英格兰",status:"现役",number:10},
+{name:"萨内",nameEN:"Leroy Sane",height:183,position:"FW",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:10},
+{name:"斯特林",nameEN:"Raheem Sterling",height:170,position:"FW",team:"阿森纳",nationality:"英格兰",status:"现役",number:30},
+{name:"吉鲁",nameEN:"Olivier Giroud",height:192,position:"FW",team:"洛杉矶FC",nationality:"法国",status:"现役",number:9},
+{name:"奥巴梅扬",nameEN:"Pierre-Emerick Aubameyang",height:187,position:"FW",team:"马赛",nationality:"加蓬",status:"现役",number:10},
+{name:"路卡库",nameEN:"Romelu Lukaku",height:190,position:"FW",team:"那不勒斯",nationality:"比利时",status:"现役",number:11},
+{name:"迪亚斯",nameEN:"Luis Diaz",height:180,position:"FW",team:"利物浦",nationality:"哥伦比亚",status:"现役",number:7},
+{name:"努涅斯",nameEN:"Darwin Nunez",height:187,position:"FW",team:"利物浦",nationality:"乌拉圭",status:"现役",number:9},
+{name:"穆德里克",nameEN:"Mykhaylo Mudryk",height:176,position:"FW",team:"切尔西",nationality:"乌克兰",status:"现役",number:10},
+{name:"杰克逊",nameEN:"Nicolas Jackson",height:185,position:"FW",team:"切尔西",nationality:"塞内加尔",status:"现役",number:15},
+{name:"费利克斯",nameEN:"Joao Felix",height:181,position:"FW",team:"切尔西",nationality:"葡萄牙",status:"现役",number:11},
+{name:"马丁内利",nameEN:"Gabriel Martinelli",height:178,position:"FW",team:"阿森纳",nationality:"巴西",status:"现役",number:11},
+{name:"帕尔默",nameEN:"Cole Palmer",height:185,position:"FW",team:"切尔西",nationality:"英格兰",status:"现役",number:20},
+{name:"沃特金斯",nameEN:"Ollie Watkins",height:180,position:"FW",team:"阿斯顿维拉",nationality:"英格兰",status:"现役",number:11},
+{name:"加纳乔",nameEN:"Alejandro Garnacho",height:181,position:"FW",team:"曼彻斯特联",nationality:"阿根廷",status:"现役",number:11},
+{name:"阿尔瓦雷斯",nameEN:"Julian Alvarez",height:170,position:"FW",team:"马德里竞技",nationality:"阿根廷",status:"现役",number:19},
+{name:"劳塔罗",nameEN:"Lautaro Martinez",height:174,position:"FW",team:"国际米兰",nationality:"阿根廷",status:"现役",number:10},
+{name:"图拉姆",nameEN:"Marcus Thuram",height:192,position:"FW",team:"国际米兰",nationality:"法国",status:"现役",number:9},
+{name:"迪奥戈若塔",nameEN:"Diogo Jota",height:178,position:"FW",team:"利物浦",nationality:"葡萄牙",status:"现役",number:20},
+{name:"格列兹曼",nameEN:"Antoine Griezmann",height:176,position:"FW",team:"马德里竞技",nationality:"法国",status:"现役",number:7},
+{name:"伊卡尔迪",nameEN:"Mauro Icardi",height:181,position:"FW",team:"加拉塔萨雷",nationality:"阿根廷",status:"现役",number:9},
+{name:"韦尔纳",nameEN:"Timo Werner",height:181,position:"FW",team:"热刺",nationality:"德国",status:"现役",number:10},
+{name:"维尔茨",nameEN:"Florian Wirtz",height:180,position:"FW",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:10},
+{name:"穆西亚拉",nameEN:"Jamal Musiala",height:183,position:"FW",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:42},
+{name:"科曼",nameEN:"Kingsley Coman",height:178,position:"FW",team:"拜仁慕尼黑",nationality:"法国",status:"现役",number:11},
+{name:"恩库库",nameEN:"Christopher Nkunku",height:175,position:"FW",team:"切尔西",nationality:"法国",status:"现役",number:18},
+{name:"弗拉霍维奇",nameEN:"Dusan Vlahovic",height:190,position:"FW",team:"尤文图斯",nationality:"塞尔维亚",status:"现役",number:9},
+{name:"基耶萨",nameEN:"Federico Chiesa",height:175,position:"FW",team:"利物浦",nationality:"意大利",status:"现役",number:14},
+{name:"奥斯卡",nameEN:"Oscar",height:180,position:"MID",team:"上海海港",nationality:"巴西",status:"现役",number:8},
+{name:"古伊塞",nameEN:"Serhou Guirassy",height:187,position:"FW",team:"多特蒙德",nationality:"几内亚",status:"现役",number:9},
+{name:"萨维尼奥",nameEN:"Savinho",height:179,position:"FW",team:"曼彻斯特城",nationality:"巴西",status:"现役",number:26},
+{name:"麦卡利斯特",nameEN:"Alexis Mac Allister",height:177,position:"MID",team:"利物浦",nationality:"阿根廷",status:"现役",number:10},
+{name:"坎特",nameEN:"N'Golo Kante",height:168,position:"MID",team:"利雅得联合",nationality:"法国",status:"现役",number:7},
+{name:"帕雷德斯",nameEN:"Leandro Paredes",height:180,position:"MID",team:"罗马",nationality:"阿根廷",status:"现役",number:5},
+/* ── 现役 中场 ── */
+{name:"德布劳内",nameEN:"Kevin De Bruyne",height:181,position:"MID",team:"曼彻斯特城",nationality:"比利时",status:"现役",number:17},
+{name:"莫德里奇",nameEN:"Luka Modric",height:172,position:"MID",team:"皇家马德里",nationality:"克罗地亚",status:"现役",number:10},
+{name:"贝林厄姆",nameEN:"Jude Bellingham",height:186,position:"MID",team:"皇家马德里",nationality:"英格兰",status:"现役",number:5},
+{name:"佩德里",nameEN:"Pedri",height:174,position:"MID",team:"巴塞罗那",nationality:"西班牙",status:"现役",number:8},
+{name:"B席",nameEN:"Bernardo Silva",height:173,position:"MID",team:"曼彻斯特城",nationality:"葡萄牙",status:"现役",number:20},
+{name:"B费",nameEN:"Bruno Fernandes",height:179,position:"MID",team:"曼彻斯特联",nationality:"葡萄牙",status:"现役",number:8},
+{name:"基米希",nameEN:"Joshua Kimmich",height:177,position:"MID",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:6},
+{name:"巴雷拉",nameEN:"Nicolo Barella",height:172,position:"MID",team:"国际米兰",nationality:"意大利",status:"现役",number:23},
+{name:"恰尔汗奥卢",nameEN:"Hakan Calhanoglu",height:177,position:"MID",team:"国际米兰",nationality:"土耳其",status:"现役",number:20},
+{name:"加维",nameEN:"Gavi",height:173,position:"MID",team:"巴塞罗那",nationality:"西班牙",status:"现役",number:6},
+{name:"科瓦契奇",nameEN:"Mateo Kovacic",height:177,position:"MID",team:"曼彻斯特城",nationality:"克罗地亚",status:"现役",number:8},
+{name:"拉比奥特",nameEN:"Adrien Rabiot",height:188,position:"MID",team:"马赛",nationality:"法国",status:"现役",number:25},
+{name:"莱斯",nameEN:"Declan Rice",height:185,position:"MID",team:"阿森纳",nationality:"英格兰",status:"现役",number:41},
+{name:"麦克托米奈",nameEN:"Scott McTominay",height:188,position:"MID",team:"那不勒斯",nationality:"苏格兰",status:"现役",number:8},
+{name:"卡马文加",nameEN:"Eduardo Camavinga",height:181,position:"MID",team:"皇家马德里",nationality:"法国",status:"现役",number:12},
+{name:"瓦尔韦德",nameEN:"Federico Valverde",height:182,position:"MID",team:"皇家马德里",nationality:"乌拉圭",status:"现役",number:15},
+{name:"秋亚梅尼",nameEN:"Aurelien Tchouameni",height:187,position:"MID",team:"皇家马德里",nationality:"法国",status:"现役",number:18},
+{name:"恩森索",nameEN:"Enzo Fernandez",height:182,position:"MID",team:"切尔西",nationality:"阿根廷",status:"现役",number:8},
+{name:"扎卡",nameEN:"Granit Xhaka",height:183,position:"MID",team:"勒沃库森",nationality:"瑞士",status:"现役",number:34},
+{name:"戈雷茨卡",nameEN:"Leon Goretzka",height:189,position:"MID",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:8},
+{name:"麦迪逊",nameEN:"James Maddison",height:177,position:"MID",team:"热刺",nationality:"英格兰",status:"现役",number:10},
+{name:"苏比曼迪",nameEN:"Martin Zubimendi",height:182,position:"MID",team:"阿森纳",nationality:"西班牙",status:"现役",number:4},
+{name:"德保罗",nameEN:"Rodrigo De Paul",height:181,position:"MID",team:"马德里竞技",nationality:"阿根廷",status:"现役",number:11},
+{name:"库普梅纳斯",nameEN:"Teun Koopmeiners",height:183,position:"MID",team:"尤文图斯",nationality:"荷兰",status:"现役",number:8},
+{name:"李刚仁",nameEN:"Kang-in Lee",height:175,position:"MID",team:"巴黎圣日耳曼",nationality:"韩国",status:"现役",number:19},
+/* ── 现役 后卫 ── */
+{name:"范戴克",nameEN:"Virgil van Dijk",height:193,position:"DEF",team:"利物浦",nationality:"荷兰",status:"现役",number:4},
+{name:"鲁本迪亚斯",nameEN:"Ruben Dias",height:187,position:"DEF",team:"曼彻斯特城",nationality:"葡萄牙",status:"现役",number:3},
+{name:"吕迪格",nameEN:"Antonio Rudiger",height:190,position:"DEF",team:"皇家马德里",nationality:"德国",status:"现役",number:22},
+{name:"戴维斯",nameEN:"Alphonso Davies",height:180,position:"DEF",team:"拜仁慕尼黑",nationality:"加拿大",status:"现役",number:19},
+{name:"坎塞洛",nameEN:"Joao Cancelo",height:182,position:"DEF",team:"巴塞罗那",nationality:"葡萄牙",status:"现役",number:2},
+{name:"孔德",nameEN:"Jules Kounde",height:179,position:"DEF",team:"巴塞罗那",nationality:"法国",status:"现役",number:23},
+{name:"特里皮尔",nameEN:"Kieran Trippier",height:175,position:"DEF",team:"纽卡斯尔",nationality:"英格兰",status:"现役",number:2},
+{name:"小西奥",nameEN:"Theo Hernandez",height:184,position:"DEF",team:"AC米兰",nationality:"法国",status:"现役",number:19},
+{name:"罗伯逊",nameEN:"Andrew Robertson",height:178,position:"DEF",team:"利物浦",nationality:"苏格兰",status:"现役",number:26},
+{name:"阿诺德",nameEN:"Trent Alexander-Arnold",height:175,position:"DEF",team:"皇家马德里",nationality:"英格兰",status:"现役",number:66},
+{name:"罗梅罗",nameEN:"Cristian Romero",height:185,position:"DEF",team:"热刺",nationality:"阿根廷",status:"现役",number:13},
+{name:"萨利巴",nameEN:"William Saliba",height:192,position:"DEF",team:"阿森纳",nationality:"法国",status:"现役",number:12},
+{name:"加布里埃尔",nameEN:"Gabriel Magalhaes",height:191,position:"DEF",team:"阿森纳",nationality:"巴西",status:"现役",number:6},
+{name:"哈基米",nameEN:"Achraf Hakimi",height:181,position:"DEF",team:"巴黎圣日耳曼",nationality:"摩洛哥",status:"现役",number:2},
+{name:"帕瓦尔",nameEN:"Benjamin Pavard",height:183,position:"DEF",team:"国际米兰",nationality:"法国",status:"现役",number:28},
+{name:"迪马尔科",nameEN:"Federico Dimarco",height:175,position:"DEF",team:"国际米兰",nationality:"意大利",status:"现役",number:32},
+{name:"布雷默",nameEN:"Gleison Bremer",height:187,position:"DEF",team:"尤文图斯",nationality:"巴西",status:"现役",number:3},
+{name:"德里赫特",nameEN:"Matthijs de Ligt",height:188,position:"DEF",team:"曼彻斯特联",nationality:"荷兰",status:"现役",number:4},
+{name:"弗里姆庞",nameEN:"Jeremie Frimpong",height:172,position:"DEF",team:"勒沃库森",nationality:"荷兰",status:"现役",number:30},
+{name:"莫利纳",nameEN:"Nahuel Molina",height:179,position:"DEF",team:"马德里竞技",nationality:"阿根廷",status:"现役",number:26},
+/* ── 现役 门将 ── */
+{name:"阿利松",nameEN:"Alisson Becker",height:191,position:"GK",team:"利物浦",nationality:"巴西",status:"现役",number:1},
+{name:"库尔图瓦",nameEN:"Thibaut Courtois",height:199,position:"GK",team:"皇家马德里",nationality:"比利时",status:"现役",number:1},
+{name:"诺伊尔",nameEN:"Manuel Neuer",height:193,position:"GK",team:"拜仁慕尼黑",nationality:"德国",status:"现役",number:1},
+{name:"奥布拉克",nameEN:"Jan Oblak",height:188,position:"GK",team:"马德里竞技",nationality:"斯洛文尼亚",status:"现役",number:13},
+{name:"马丁内斯门将",nameEN:"Emiliano Martinez",height:195,position:"GK",team:"阿斯顿维拉",nationality:"阿根廷",status:"现役",number:23},
+{name:"索梅尔",nameEN:"Yann Sommer",height:183,position:"GK",team:"国际米兰",nationality:"瑞士",status:"现役",number:1},
+{name:"拉亚",nameEN:"David Raya",height:183,position:"GK",team:"阿森纳",nationality:"西班牙",status:"现役",number:22},
+{name:"奥纳纳",nameEN:"Andre Onana",height:190,position:"GK",team:"曼彻斯特联",nationality:"喀麦隆",status:"现役",number:24},
+{name:"多纳鲁马",nameEN:"Gianluigi Donnarumma",height:196,position:"GK",team:"巴黎圣日耳曼",nationality:"意大利",status:"现役",number:99},
+{name:"弗莱克",nameEN:"Gregor Kobel",height:194,position:"GK",team:"多特蒙德",nationality:"瑞士",status:"现役",number:1},
+/* ── 亚洲现役 ── */
+{name:"久保建英",nameEN:"Takefusa Kubo",height:173,position:"FW",team:"皇家社会",nationality:"日本",status:"现役",number:14},
+{name:"三笘薰",nameEN:"Kaoru Mitoma",height:178,position:"FW",team:"布莱顿",nationality:"日本",status:"现役",number:22},
+{name:"堂安律",nameEN:"Ritsu Doan",height:172,position:"FW",team:"弗莱堡",nationality:"日本",status:"现役",number:21},
+{name:"前田大然",nameEN:"Daizen Maeda",height:176,position:"FW",team:"凯尔特人",nationality:"日本",status:"现役",number:38},
+{name:"南野拓实",nameEN:"Takumi Minamino",height:173,position:"FW",team:"摩纳哥",nationality:"日本",status:"现役",number:18},
+{name:"大迫勇也",nameEN:"Yuya Osako",height:182,position:"FW",team:"神户胜利船",nationality:"日本",status:"现役",number:15},
+{name:"黄喜灿",nameEN:"Hwang Hee-chan",height:177,position:"FW",team:"狼队",nationality:"韩国",status:"现役",number:11},
+{name:"黄仁范",nameEN:"Hwang In-beom",height:180,position:"MID",team:"弗莱堡",nationality:"韩国",status:"现役",number:8},
+{name:"武磊",nameEN:"Wu Lei",height:174,position:"FW",team:"上海海港",nationality:"中国",status:"现役",number:9},
+/* ── 退役 传奇 ── */
+{name:"齐达内",nameEN:"Zinedine Zidane",height:185,position:"MID",team:"退役",nationality:"法国",status:"退役",number:5},
+{name:"小罗",nameEN:"Ronaldinho",height:181,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:10},
+{name:"贝克汉姆",nameEN:"David Beckham",height:183,position:"MID",team:"退役",nationality:"英格兰",status:"退役",number:7},
+{name:"马拉多纳",nameEN:"Diego Maradona",height:165,position:"FW",team:"退役",nationality:"阿根廷",status:"退役",number:10},
+{name:"贝利",nameEN:"Pele",height:173,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:10},
+{name:"卡卡",nameEN:"Kaka",height:183,position:"MID",team:"退役",nationality:"巴西",status:"退役",number:22},
+{name:"亨利",nameEN:"Thierry Henry",height:188,position:"FW",team:"退役",nationality:"法国",status:"退役",number:12},
+{name:"鲁尼",nameEN:"Wayne Rooney",height:176,position:"FW",team:"退役",nationality:"英格兰",status:"退役",number:10},
+{name:"皮尔洛",nameEN:"Andrea Pirlo",height:177,position:"MID",team:"退役",nationality:"意大利",status:"退役",number:21},
+{name:"布冯",nameEN:"Gianluigi Buffon",height:192,position:"GK",team:"退役",nationality:"意大利",status:"退役",number:1},
+{name:"哈维",nameEN:"Xavi Hernandez",height:170,position:"MID",team:"退役",nationality:"西班牙",status:"退役",number:6},
+{name:"伊涅斯塔",nameEN:"Andres Iniesta",height:171,position:"MID",team:"退役",nationality:"西班牙",status:"退役",number:8},
+{name:"克罗斯",nameEN:"Toni Kroos",height:183,position:"MID",team:"退役",nationality:"德国",status:"退役",number:8},
+{name:"罗本",nameEN:"Arjen Robben",height:181,position:"FW",team:"退役",nationality:"荷兰",status:"退役",number:10},
+{name:"里贝里",nameEN:"Franck Ribery",height:170,position:"FW",team:"退役",nationality:"法国",status:"退役",number:7},
+{name:"埃托奥",nameEN:"Samuel Etoo",height:180,position:"FW",team:"退役",nationality:"喀麦隆",status:"退役",number:9},
+{name:"德罗巴",nameEN:"Didier Drogba",height:189,position:"FW",team:"退役",nationality:"科特迪瓦",status:"退役",number:11},
+{name:"托蒂",nameEN:"Francesco Totti",height:180,position:"FW",team:"退役",nationality:"意大利",status:"退役",number:10},
+{name:"伊布",nameEN:"Zlatan Ibrahimovic",height:195,position:"FW",team:"退役",nationality:"瑞典",status:"退役",number:9},
+{name:"特里",nameEN:"John Terry",height:187,position:"DEF",team:"退役",nationality:"英格兰",status:"退役",number:26},
+{name:"卡纳瓦罗",nameEN:"Fabio Cannavaro",height:176,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:5},
+{name:"内斯塔",nameEN:"Alessandro Nesta",height:187,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:13},
+{name:"马尔蒂尼",nameEN:"Paolo Maldini",height:187,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:3},
+{name:"巴拉克",nameEN:"Michael Ballack",height:189,position:"MID",team:"退役",nationality:"德国",status:"退役",number:13},
+{name:"大罗",nameEN:"Ronaldo Nazario",height:183,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:9},
+{name:"菲戈",nameEN:"Luis Figo",height:180,position:"FW",team:"退役",nationality:"葡萄牙",status:"退役",number:10},
+{name:"里克尔梅",nameEN:"Juan Roman Riquelme",height:184,position:"MID",team:"退役",nationality:"阿根廷",status:"退役",number:10},
+{name:"舍甫琴科",nameEN:"Andriy Shevchenko",height:183,position:"FW",team:"退役",nationality:"乌克兰",status:"退役",number:7},
+{name:"范尼",nameEN:"Ruud van Nistelrooy",height:188,position:"FW",team:"退役",nationality:"荷兰",status:"退役",number:10},
+{name:"卡西利亚斯",nameEN:"Iker Casillas",height:182,position:"GK",team:"退役",nationality:"西班牙",status:"退役",number:1},
+{name:"劳尔",nameEN:"Raul Gonzalez",height:180,position:"FW",team:"退役",nationality:"西班牙",status:"退役",number:7},
+{name:"欧文",nameEN:"Michael Owen",height:173,position:"FW",team:"退役",nationality:"英格兰",status:"退役",number:10},
+{name:"杰拉德",nameEN:"Steven Gerrard",height:183,position:"MID",team:"退役",nationality:"英格兰",status:"退役",number:8},
+{name:"兰帕德",nameEN:"Frank Lampard",height:184,position:"MID",team:"退役",nationality:"英格兰",status:"退役",number:8},
+{name:"德科",nameEN:"Deco",height:174,position:"MID",team:"退役",nationality:"葡萄牙",status:"退役",number:20},
+{name:"维埃拉",nameEN:"Patrick Vieira",height:191,position:"MID",team:"退役",nationality:"法国",status:"退役",number:4},
+{name:"希勒",nameEN:"Alan Shearer",height:181,position:"FW",team:"退役",nationality:"英格兰",status:"退役",number:9},
+{name:"坎通纳",nameEN:"Eric Cantona",height:188,position:"FW",team:"退役",nationality:"法国",status:"退役",number:7},
+{name:"巴蒂斯图塔",nameEN:"Gabriel Batistuta",height:184,position:"FW",team:"退役",nationality:"阿根廷",status:"退役",number:9},
+{name:"罗马里奥",nameEN:"Romario",height:169,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:11},
+{name:"博格坎普",nameEN:"Dennis Bergkamp",height:185,position:"FW",team:"退役",nationality:"荷兰",status:"退役",number:10},
+{name:"因扎吉",nameEN:"Filippo Inzaghi",height:181,position:"FW",team:"退役",nationality:"意大利",status:"退役",number:9},
+{name:"维耶里",nameEN:"Christian Vieri",height:187,position:"FW",team:"退役",nationality:"意大利",status:"退役",number:9},
+{name:"舒梅切尔",nameEN:"Peter Schmeichel",height:193,position:"GK",team:"退役",nationality:"丹麦",status:"退役",number:1},
+{name:"范德萨",nameEN:"Edwin van der Sar",height:197,position:"GK",team:"退役",nationality:"荷兰",status:"退役",number:1},
+{name:"施魏因斯泰格",nameEN:"Bastian Schweinsteiger",height:183,position:"MID",team:"退役",nationality:"德国",status:"退役",number:31},
+{name:"克雷斯波",nameEN:"Hernan Crespo",height:184,position:"FW",team:"退役",nationality:"阿根廷",status:"退役",number:11},
+{name:"克鲁伊维特",nameEN:"Patrick Kluivert",height:190,position:"FW",team:"退役",nationality:"荷兰",status:"退役",number:9},
+{name:"托雷斯",nameEN:"Fernando Torres",height:181,position:"FW",team:"退役",nationality:"西班牙",status:"退役",number:9},
+{name:"比利亚",nameEN:"David Villa",height:175,position:"FW",team:"退役",nationality:"西班牙",status:"退役",number:7},
+{name:"小豌豆",nameEN:"David Silva",height:170,position:"MID",team:"退役",nationality:"西班牙",status:"退役",number:21},
+{name:"图雷",nameEN:"Yaya Toure",height:188,position:"MID",team:"退役",nationality:"科特迪瓦",status:"退役",number:42},
+{name:"斯科尔斯",nameEN:"Paul Scholes",height:170,position:"MID",team:"退役",nationality:"英格兰",status:"退役",number:18},
+{name:"基恩",nameEN:"Roy Keane",height:180,position:"MID",team:"退役",nationality:"爱尔兰",status:"退役",number:16},
+{name:"吉格斯",nameEN:"Ryan Giggs",height:180,position:"FW",team:"退役",nationality:"威尔士",status:"退役",number:11},
+{name:"西多夫",nameEN:"Clarence Seedorf",height:178,position:"MID",team:"退役",nationality:"荷兰",status:"退役",number:10},
+{name:"加图索",nameEN:"Gennaro Gattuso",height:177,position:"MID",team:"退役",nationality:"意大利",status:"退役",number:8},
+{name:"斯内德",nameEN:"Wesley Sneijder",height:170,position:"MID",team:"退役",nationality:"荷兰",status:"退役",number:10},
+{name:"内德维德",nameEN:"Pavel Nedved",height:177,position:"MID",team:"退役",nationality:"捷克",status:"退役",number:11},
+{name:"克劳奇",nameEN:"Peter Crouch",height:201,position:"FW",team:"退役",nationality:"英格兰",status:"退役",number:23},
+{name:"科尔",nameEN:"Ashley Cole",height:176,position:"DEF",team:"退役",nationality:"英格兰",status:"退役",number:3},
+{name:"费迪南德",nameEN:"Rio Ferdinand",height:189,position:"DEF",team:"退役",nationality:"英格兰",status:"退役",number:5},
+{name:"维迪奇",nameEN:"Nemanja Vidic",height:188,position:"DEF",team:"退役",nationality:"塞尔维亚",status:"退役",number:15},
+{name:"普约尔",nameEN:"Carles Puyol",height:178,position:"DEF",team:"退役",nationality:"西班牙",status:"退役",number:5},
+{name:"拉莫斯",nameEN:"Sergio Ramos",height:184,position:"DEF",team:"退役",nationality:"西班牙",status:"退役",number:4},
+{name:"皮克",nameEN:"Gerard Pique",height:194,position:"DEF",team:"退役",nationality:"西班牙",status:"退役",number:3},
+{name:"法尔考",nameEN:"Radamel Falcao",height:177,position:"FW",team:"退役",nationality:"哥伦比亚",status:"退役",number:9},
+{name:"苏亚雷斯",nameEN:"Luis Suarez",height:182,position:"FW",team:"退役",nationality:"乌拉圭",status:"退役",number:9},
+{name:"阿圭罗",nameEN:"Sergio Aguero",height:173,position:"FW",team:"退役",nationality:"阿根廷",status:"退役",number:10},
+{name:"伊瓜因",nameEN:"Gonzalo Higuain",height:184,position:"FW",team:"退役",nationality:"阿根廷",status:"退役",number:9},
+{name:"迭戈科斯塔",nameEN:"Diego Costa",height:188,position:"FW",team:"退役",nationality:"西班牙",status:"退役",number:19},
+{name:"法布雷加斯",nameEN:"Cesc Fabregas",height:178,position:"MID",team:"退役",nationality:"西班牙",status:"退役",number:4},
+{name:"克鲁伊夫",nameEN:"Johan Cruyff",height:178,position:"FW",team:"退役",nationality:"荷兰",status:"退役",number:14},
+{name:"普拉蒂尼",nameEN:"Michel Platini",height:179,position:"MID",team:"退役",nationality:"法国",status:"退役",number:10},
+{name:"马特乌斯",nameEN:"Lothar Matthaus",height:174,position:"MID",team:"退役",nationality:"德国",status:"退役",number:10},
+{name:"克林斯曼",nameEN:"Jurgen Klinsmann",height:182,position:"FW",team:"退役",nationality:"德国",status:"退役",number:9},
+{name:"贝肯鲍尔",nameEN:"Franz Beckenbauer",height:181,position:"DEF",team:"退役",nationality:"德国",status:"退役",number:5},
+{name:"里瓦尔多",nameEN:"Rivaldo",height:181,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:10},
+{name:"卡洛斯",nameEN:"Roberto Carlos",height:168,position:"DEF",team:"退役",nationality:"巴西",status:"退役",number:6},
+{name:"基耶利尼",nameEN:"Giorgio Chiellini",height:186,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:3},
+{name:"邦努奇",nameEN:"Leonardo Bonucci",height:190,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:19},
+{name:"德罗西",nameEN:"Daniele De Rossi",height:184,position:"MID",team:"退役",nationality:"意大利",status:"退役",number:16},
+{name:"坎比亚索",nameEN:"Esteban Cambiasso",height:177,position:"MID",team:"退役",nationality:"阿根廷",status:"退役",number:55},
+{name:"萨内蒂",nameEN:"Javier Zanetti",height:178,position:"DEF",team:"退役",nationality:"阿根廷",status:"退役",number:4},
+{name:"阿内尔卡",nameEN:"Nicolas Anelka",height:183,position:"FW",team:"退役",nationality:"法国",status:"退役",number:39},
+{name:"达沃苏克尔",nameEN:"Davor Suker",height:183,position:"FW",team:"退役",nationality:"克罗地亚",status:"退役",number:9},
+{name:"博班",nameEN:"Zvonimir Boban",height:182,position:"MID",team:"退役",nationality:"克罗地亚",status:"退役",number:10},
+{name:"巴拉特利",nameEN:"Mario Balotelli",height:189,position:"FW",team:"退役",nationality:"意大利",status:"退役",number:45},
+{name:"帕托",nameEN:"Alexandre Pato",height:178,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:7},
+{name:"胡尔克",nameEN:"Hulk",height:180,position:"FW",team:"退役",nationality:"巴西",status:"退役",number:7},
+{name:"瓜迪奥拉",nameEN:"Pep Guardiola",height:180,position:"MID",team:"退役",nationality:"西班牙",status:"退役",number:4},
+{name:"雷科巴",nameEN:"Alvaro Recoba",height:179,position:"FW",team:"退役",nationality:"乌拉圭",status:"退役",number:9},
+{name:"萨维切维奇",nameEN:"Dejan Savicevic",height:182,position:"FW",team:"退役",nationality:"黑山",status:"退役",number:10},
+{name:"拉尔森",nameEN:"Henrik Larsson",height:178,position:"FW",team:"退役",nationality:"瑞典",status:"退役",number:7},
+{name:"维龙",nameEN:"Juan Sebastian Veron",height:183,position:"MID",team:"退役",nationality:"阿根廷",status:"退役",number:10},
+{name:"布雷默2",nameEN:"Andreas Brehme",height:179,position:"DEF",team:"退役",nationality:"德国",status:"退役",number:3},
+{name:"鲁梅尼格",nameEN:"Karl-Heinz Rummenigge",height:181,position:"FW",team:"退役",nationality:"德国",status:"退役",number:11},
+{name:"济科",nameEN:"Zico",height:172,position:"MID",team:"退役",nationality:"巴西",status:"退役",number:10},
+{name:"苏格拉底",nameEN:"Socrates",height:192,position:"MID",team:"退役",nationality:"巴西",status:"退役",number:8},
+{name:"福勒",nameEN:"Robbie Fowler",height:180,position:"FW",team:"退役",nationality:"英格兰",status:"退役",number:23},
+{name:"麦克马纳曼",nameEN:"Steve McManaman",height:179,position:"MID",team:"退役",nationality:"英格兰",status:"退役",number:7},
+{name:"帕努奇",nameEN:"Christian Panucci",height:179,position:"DEF",team:"退役",nationality:"意大利",status:"退役",number:2},
+{name:"米哈伊洛维奇",nameEN:"Sinisa Mihajlovic",height:183,position:"DEF",team:"退役",nationality:"塞尔维亚",status:"退役",number:11},
+{name:"斯坦科维奇",nameEN:"Dejan Stankovic",height:183,position:"MID",team:"退役",nationality:"塞尔维亚",status:"退役",number:5},
+/* ── 亚洲退役传奇 ── */
+{name:"中田英寿",nameEN:"Hidetoshi Nakata",height:175,position:"MID",team:"退役",nationality:"日本",status:"退役",number:7},
+{name:"三浦知良",nameEN:"Kazuyoshi Miura",height:176,position:"FW",team:"退役",nationality:"日本",status:"退役",number:11},
+{name:"香川真司",nameEN:"Shinji Kagawa",height:175,position:"MID",team:"退役",nationality:"日本",status:"退役",number:23},
+{name:"本田圭佑",nameEN:"Keisuke Honda",height:182,position:"MID",team:"退役",nationality:"日本",status:"退役",number:4},
+{name:"长友佑都",nameEN:"Yuto Nagatomo",height:170,position:"DEF",team:"退役",nationality:"日本",status:"退役",number:5},
+{name:"朴智星",nameEN:"Park Ji-sung",height:178,position:"MID",team:"退役",nationality:"韩国",status:"退役",number:13},
+{name:"车范根",nameEN:"Cha Bum-kun",height:177,position:"FW",team:"退役",nationality:"韩国",status:"退役",number:9},
+{name:"李永标",nameEN:"Lee Young-pyo",height:174,position:"DEF",team:"退役",nationality:"韩国",status:"退役",number:3},
+{name:"安贞焕",nameEN:"Ahn Jung-hwan",height:183,position:"FW",team:"退役",nationality:"韩国",status:"退役",number:10},
+{name:"范志毅",nameEN:"Fan Zhiyi",height:185,position:"DEF",team:"退役",nationality:"中国",status:"退役",number:6},
+{name:"郝海东",nameEN:"Hao Haidong",height:177,position:"FW",team:"退役",nationality:"中国",status:"退役",number:9},
+];
 
-/* =========================================================
-   DUAL-CONTROLLER: KEYBOARD MAPPING
-   P1 → Enter key   P2 → Backslash key
-   ========================================================= */
-const PLAYER_SUBMIT_KEYS = ["Enter", "\\"];
+/* ════ 游戏逻辑 ════ */
+let guesses=[],selectedP=null,gameOver=false,answer=null;
+let timerInterval=null,timeLeft=TIME,sortMode='name';
 
-function handleKeyDown(event, playerIdx) {
-  if (event.key === "Enter") {
-    submitGuess(playerIdx);
-  }
+function startNewGame(){
+  guesses=[];selectedP=null;gameOver=false;
+  answer=PLAYERS[Math.floor(Math.random()*PLAYERS.length)];
+  document.getElementById('guessesBody').innerHTML='<tr><td colspan="7" class="empty-state">⬆ 开始猜测吧</td></tr>';
+  searchInput.value='';
+  document.getElementById('guessBtn').disabled=true;
+  document.getElementById('message').style.display='none';
+  document.getElementById('answerReveal').style.display='none';
+  document.getElementById('actionBtns').style.display='none';
+  acList.style.display='none';
+  updateStats();resetTimer();startTimer();
+}
+function updateStats(){
+  document.getElementById('remaining').textContent=MAX_G-guesses.length;
+  document.getElementById('guessCount').textContent=guesses.length;
+  const d=new Date();
+  document.getElementById('todayLabel').textContent=
+    `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function resetTimer(){clearInterval(timerInterval);timerInterval=null;timeLeft=TIME;renderTimer();}
+function startTimer(){
+  timerInterval=setInterval(()=>{timeLeft--;renderTimer();if(timeLeft<=0){clearInterval(timerInterval);onTimeout();}},1000);
+}
+function renderTimer(){
+  const pct=Math.max(0,timeLeft/TIME*100);
+  const bar=document.getElementById('timerBar');
+  bar.style.width=pct+'%';
+  bar.style.background=timeLeft>80?'var(--green)':timeLeft>40?'var(--yellow)':'#ef4444';
+  document.getElementById('timerNum').textContent=Math.max(0,timeLeft);
+}
+function onTimeout(){
+  if(gameOver)return;gameOver=true;
+  showMsg('⏰ 时间到！','timeout');revealAnswer();endGame();
 }
 
-// Global keydown for Player 2's backslash shortcut
-document.addEventListener("keydown", function (e) {
-  if (!roundOver && numPlayers === 2 && e.key === "\\" && currentPlayer === 1) {
-    e.preventDefault();
-    submitGuess(1);
-  }
+/* ── 搜索 ── */
+const searchInput=document.getElementById('searchInput');
+const acList=document.getElementById('autocomplete');
+function norm(s){
+  return s.toLowerCase()
+    .replace(/[àáâã]/g,'a').replace(/[éèêë]/g,'e').replace(/[íîï]/g,'i')
+    .replace(/[óôõ]/g,'o').replace(/[úûü]/g,'u').replace(/ñ/g,'n')
+    .replace(/[ćč]/g,'c').replace(/[šś]/g,'s').replace(/[žź]/g,'z')
+    .replace(/[^a-z0-9\u4e00-\u9fff]/g,'');
+}
+function matchScore(p,q){
+  const qq=norm(q);if(!qq)return 0;
+  const cn=norm(p.name),en=norm(p.nameEN);
+  if(cn===qq||en===qq)return 5;
+  if(cn.includes(qq))return 4;
+  if(en.startsWith(qq))return 3;
+  if(en.includes(qq))return 2;
+  if(p.nameEN.toLowerCase().split(' ').some(w=>norm(w).startsWith(qq)))return 2;
+  return 0;
+}
+searchInput.addEventListener('input',()=>{
+  const q=searchInput.value.trim();
+  selectedP=null;document.getElementById('guessBtn').disabled=true;
+  if(!q){acList.style.display='none';return;}
+  const done=new Set(guesses.map(g=>g.name));
+  const res=PLAYERS.map(p=>({p,sc:matchScore(p,q)}))
+    .filter(r=>r.sc>0)
+    .sort((a,b)=>b.sc-a.sc||a.p.name.localeCompare(b.p.name,'zh'))
+    .slice(0,10);
+  if(!res.length){acList.style.display='none';return;}
+  acList.innerHTML=res.map(({p})=>{
+    const d=done.has(p.name);
+    const sn=p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="ac-item${d?' disabled':''}" onclick="selectPlayer('${sn}')">
+      <span>${p.name}<span class="ac-en">${p.nameEN}</span></span>
+      <span class="ac-meta">${p.team}·${p.nationality}</span>
+    </div>`;
+  }).join('');
+  acList.style.display='block';
 });
+function selectPlayer(name){
+  const p=PLAYERS.find(x=>x.name===name);if(!p)return;
+  selectedP=p;searchInput.value=p.name;
+  acList.style.display='none';
+  document.getElementById('guessBtn').disabled=gameOver;
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))acList.style.display='none';});
+searchInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&selectedP)submitGuess();});
+document.getElementById('guessBtn').addEventListener('click',submitGuess);
 
-/* =========================================================
-   DUAL-CONTROLLER: GAMEPAD API
-   Gamepad 0 → Player 1   Gamepad 1 → Player 2
-   Button 0 (A/Cross) = submit guess
-   ========================================================= */
-const gamepadPrevButtons = [false, false]; // debounce A-button per gamepad
-
-function pollGamepads() {
-  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (let gIdx = 0; gIdx < 2; gIdx++) {
-    const gp = gamepads[gIdx];
-    const statusEl = document.getElementById(`gamepad-status-${gIdx}`);
-    if (!statusEl) continue;
-
-    if (gp && gp.connected) {
-      statusEl.textContent = `🎮 手柄 ${gIdx + 1} 已连接`;
-      statusEl.classList.add("connected");
-
-      // Button 0 = A (Xbox) / Cross (PS) — submit on press (not hold)
-      const aPressed = gp.buttons[0] && gp.buttons[0].pressed;
-      if (aPressed && !gamepadPrevButtons[gIdx]) {
-        if (!roundOver && (numPlayers === 1 || currentPlayer === gIdx)) {
-          submitGuess(gIdx);
-        }
-      }
-      gamepadPrevButtons[gIdx] = aPressed;
-    } else {
-      statusEl.textContent = "🎮 手柄未连接";
-      statusEl.classList.remove("connected");
-      gamepadPrevButtons[gIdx] = false;
-    }
+/* ── 提交 ── */
+function submitGuess(){
+  if(!selectedP||gameOver)return;
+  if(guesses.find(g=>g.name===selectedP.name))return;
+  guesses.push(selectedP);
+  if(guesses.length===1)document.getElementById('guessesBody').innerHTML='';
+  prependRow(selectedP);updateStats();
+  if(selectedP.name===answer.name){
+    clearInterval(timerInterval);
+    showMsg(`🎉 正确！第${guesses.length}次猜中 ${answer.name}！`,'win');
+    gameOver=true;endGame();
+  } else if(guesses.length>=MAX_G){
+    clearInterval(timerInterval);
+    showMsg('😢 次数用完！','lose');
+    revealAnswer();gameOver=true;endGame();
   }
-  requestAnimationFrame(pollGamepads);
+  selectedP=null;searchInput.value='';
+  document.getElementById('guessBtn').disabled=true;
+  acList.style.display='none';
+}
+function showMsg(t,type){
+  const el=document.getElementById('message');
+  el.textContent=t;el.className='message '+type;el.style.display='block';
+}
+function revealAnswer(){
+  document.getElementById('arName').textContent=answer.name;
+  document.getElementById('arEn').textContent=answer.nameEN;
+  document.getElementById('arDetail').textContent=
+    `${answer.team} · ${answer.nationality} · ${POS[answer.position]} · ${answer.height}cm · #${answer.number} · ${answer.status}`;
+  document.getElementById('answerReveal').style.display='block';
+}
+function endGame(){document.getElementById('actionBtns').style.display='flex';}
+
+/* ── 反馈行 ── */
+function cmpH(g,a){
+  if(g===a)return{cls:'correct',label:`${g}cm`};
+  return{cls:Math.abs(g-a)<=5?'close':'wrong',label:`${g}cm${g<a?' ↑':' ↓'}`};
+}
+function cmpN(g,a){
+  if(g===a)return{cls:'correct',label:`#${g}`};
+  return{cls:Math.abs(g-a)<=5?'close':'wrong',label:`#${g}${g<a?' ↑':' ↓'}`};
+}
+function cmpE(g,a,lb){return{cls:g===a?'correct':'wrong',label:lb||g};}
+function prependRow(p){
+  const tbody=document.getElementById('guessesBody');
+  const tr=document.createElement('tr');tr.className='guess-row';
+  [{cls:'',label:p.name},
+   cmpH(p.height,answer.height),
+   cmpE(p.position,answer.position,POS[p.position]),
+   cmpE(p.team,answer.team),
+   cmpE(p.nationality,answer.nationality),
+   cmpE(p.status,answer.status),
+   cmpN(p.number,answer.number)
+  ].forEach((c,i)=>{
+    const td=document.createElement('td');
+    td.innerHTML=c.label;
+    if(i>0)td.className='cell-'+c.cls;
+    tr.appendChild(td);
+  });
+  tbody.insertBefore(tr,tbody.firstChild);
 }
 
-window.addEventListener("gamepadconnected", function (e) {
-  console.log("Gamepad connected:", e.gamepad.id);
-});
-
-// Start gamepad polling
-requestAnimationFrame(pollGamepads);
-
-/* =========================================================
-   SETUP
-   ========================================================= */
-function startGame(players) {
-  maxNum = parseInt(document.getElementById("max-num").value) || 100;
-  if (maxNum < 10) maxNum = 10;
-  numPlayers = players;
-  scores = [0, 0];
-  roundCount = 0;
-
-  document.getElementById("setup-screen").style.display = "none";
-  document.getElementById("play-screen").style.display = "block";
-
-  buildPanels();
-  newRound();
+/* ════ 弹窗 ════ */
+function openModal(){
+  const natSel=document.getElementById('fNat');
+  const nats=[...new Set(PLAYERS.map(p=>p.nationality))].sort((a,b)=>a.localeCompare(b,'zh'));
+  natSel.innerHTML='<option value="">全部国籍</option>'+nats.map(n=>`<option value="${n}">${n}</option>`).join('');
+  renderModal();
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
 }
-
-function backToSetup() {
-  document.getElementById("setup-screen").style.display = "block";
-  document.getElementById("play-screen").style.display = "none";
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow='';
 }
-
-/* =========================================================
-   PANELS
-   ========================================================= */
-function buildPanels() {
-  const wrap = document.getElementById("players-wrap");
-  wrap.innerHTML = "";
-
-  const count = numPlayers === 1 ? 1 : 2;
-  for (let i = 0; i < count; i++) {
-    wrap.innerHTML += `
-      <div class="player-panel" id="panel-${i}">
-        <div class="player-name" style="color:${COLORS[i]}">${NAMES[i]}</div>
-        <div class="player-score" id="score-${i}">得分: 0</div>
-        <div class="hint-display" id="hint-${i}">🎯</div>
-        <div class="hint-text" id="hint-text-${i}"></div>
-        <div class="guess-history" id="history-${i}"></div>
-        <div class="gamepad-status" id="gamepad-status-${i}">🎮 手柄未连接</div>
-        <div class="ctrl-key-badge" id="ctrl-key-${i}">⌨️ ${PLAYER_SUBMIT_KEYS[i] === "Enter" ? "↵ Enter" : "\\ 反斜线"} · 🎮 A 键</div>
-        <div class="input-row">
-          <input class="guess-input" type="number" id="input-${i}"
-            placeholder="1 ~ ${maxNum}" min="1" max="${maxNum}"
-            onkeydown="handleKeyDown(event, ${i})" />
-          <button class="submit-btn" id="btn-${i}" onclick="submitGuess(${i})">猜！</button>
-        </div>
-      </div>`;
-  }
+function overlayClick(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+function clearFilters(){
+  ['modalSearch','fHMin','fHMax','fNMin','fNMax'].forEach(id=>document.getElementById(id).value='');
+  ['fPos','fStatus','fNat'].forEach(id=>document.getElementById(id).value='');
+  renderModal();
 }
-
-/* =========================================================
-   ROUND
-   ========================================================= */
-function newRound() {
-  secret = Math.floor(Math.random() * maxNum) + 1;
-  roundOver = false;
-  roundCount++;
-  gamepadPrevButtons[0] = false;
-  gamepadPrevButtons[1] = false;
-  currentPlayer = 0;
-
-  document.getElementById("status-bar").textContent = `第 ${roundCount} 局 — 数字范围 1 ~ ${maxNum}`;
-  document.getElementById("btn-new-round").style.display = "none";
-
-  const count = numPlayers === 1 ? 1 : 2;
-  for (let i = 0; i < count; i++) {
-    document.getElementById(`hint-${i}`).textContent = "🎯";
-    document.getElementById(`hint-text-${i}`).textContent = "";
-    document.getElementById(`history-${i}`).innerHTML = "";
-    document.getElementById(`input-${i}`).value = "";
-    document.getElementById(`panel-${i}`).className = "player-panel";
-    updateScore(i);
-  }
-
-  activatePlayer(0);
+const sortDir={name:1,height:-1,number:1,pos:1};
+function setSort(mode){
+  if(sortMode===mode) sortDir[mode]*=-1;
+  sortMode=mode;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  const id='sort'+mode.charAt(0).toUpperCase()+mode.slice(1);
+  const btn=document.getElementById(id);
+  if(btn) btn.classList.add('active');
+  if(mode==='height') document.getElementById('sortHeight').textContent='身高 '+(sortDir.height===-1?'↓':'↑');
+  if(mode==='number') document.getElementById('sortNumber').textContent='号码 '+(sortDir.number===1?'↑':'↓');
+  renderModal();
 }
-
-/* =========================================================
-   TURN
-   ========================================================= */
-function activatePlayer(idx) {
-  const count = numPlayers === 1 ? 1 : 2;
-  for (let i = 0; i < count; i++) {
-    const input = document.getElementById(`input-${i}`);
-    const btn   = document.getElementById(`btn-${i}`);
-    const panel = document.getElementById(`panel-${i}`);
-
-    if (numPlayers === 1 || i === idx) {
-      input.disabled = false;
-      btn.disabled   = false;
-      panel.classList.add("active");
-      input.focus();
-    } else {
-      input.disabled = true;
-      btn.disabled   = true;
-      panel.classList.remove("active");
-    }
-  }
-  currentPlayer = idx;
-
-  if (numPlayers === 2) {
-    document.getElementById("status-bar").textContent =
-      `第 ${roundCount} 局 ▸ 轮到 ${NAMES[idx]} 猜！`;
-  }
+function renderModal(){
+  const q=norm(document.getElementById('modalSearch').value.trim());
+  const pos=document.getElementById('fPos').value;
+  const sta=document.getElementById('fStatus').value;
+  const nat=document.getElementById('fNat').value;
+  const hMin=parseInt(document.getElementById('fHMin').value)||0;
+  const hMax=parseInt(document.getElementById('fHMax').value)||999;
+  const nMin=parseInt(document.getElementById('fNMin').value)||0;
+  const nMax=parseInt(document.getElementById('fNMax').value)||999;
+  const seen=new Set();
+  let list=PLAYERS.filter(p=>{
+    if(seen.has(p.name))return false; seen.add(p.name);
+    if(pos&&p.position!==pos)return false;
+    if(sta&&p.status!==sta)return false;
+    if(nat&&p.nationality!==nat)return false;
+    if(p.height<hMin||p.height>hMax)return false;
+    if(p.number<nMin||p.number>nMax)return false;
+    if(q){const cn=norm(p.name),en=norm(p.nameEN);if(!cn.includes(q)&&!en.includes(q))return false;}
+    return true;
+  });
+  if(sortMode==='height') list.sort((a,b)=>sortDir.height*(a.height-b.height));
+  else if(sortMode==='number') list.sort((a,b)=>sortDir.number*(a.number-b.number));
+  else if(sortMode==='pos'){
+    const ord={GK:0,DEF:1,MID:2,FW:3};
+    list.sort((a,b)=>ord[a.position]-ord[b.position]||a.name.localeCompare(b.name,'zh'));
+  } else list.sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+  document.getElementById('modalCount').textContent=`共 ${list.length} 人`;
+  const grid=document.getElementById('playerGrid');
+  if(!list.length){grid.innerHTML='<div class="modal-empty">没有符合条件的球员</div>';return;}
+  grid.innerHTML=list.map(p=>`
+    <div class="player-card">
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-en">${p.nameEN}</div>
+      <div class="pc-tags">
+        <span class="pc-tag pos-${p.position}">${POS[p.position]}</span>
+        <span class="pc-tag">${p.nationality}</span>
+        <span class="pc-tag">${p.team}</span>
+        <span class="pc-tag">${p.height}cm</span>
+        <span class="pc-tag">#${p.number}</span>
+        <span class="pc-tag${p.status==='退役'?' retired':''}">${p.status}</span>
+      </div>
+    </div>`).join('');
 }
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-/* =========================================================
-   GUESS
-   ========================================================= */
-function submitGuess(playerIdx) {
-  if (roundOver) return;
-  if (numPlayers === 2 && playerIdx !== currentPlayer) return;
-
-  const input = document.getElementById(`input-${playerIdx}`);
-  const val   = parseInt(input.value);
-
-  if (!val || val < 1 || val > maxNum) {
-    input.focus();
-    return;
-  }
-  input.value = "";
-
-  const hintEl     = document.getElementById(`hint-${playerIdx}`);
-  const hintTextEl = document.getElementById(`hint-text-${playerIdx}`);
-  const historyEl  = document.getElementById(`history-${playerIdx}`);
-
-  if (val === secret) {
-    hintEl.textContent     = "🎉";
-    hintTextEl.textContent = `答对了！答案是 ${secret}`;
-    const entry = document.createElement("div");
-    entry.className = "win";
-    entry.textContent = `✅ ${val} — 猜中！`;
-    historyEl.prepend(entry);
-
-    scores[playerIdx]++;
-    updateScore(playerIdx);
-    roundOver = true;
-
-    document.getElementById(`panel-${playerIdx}`).classList.remove("active");
-    document.getElementById(`panel-${playerIdx}`).classList.add("winner");
-    document.getElementById(`input-${playerIdx}`).disabled  = true;
-    document.getElementById(`btn-${playerIdx}`).disabled    = true;
-
-    if (numPlayers === 2) {
-      const other = 1 - playerIdx;
-      document.getElementById(`input-${other}`).disabled = true;
-      document.getElementById(`btn-${other}`).disabled   = true;
-      document.getElementById(`panel-${other}`).classList.remove("active");
-      document.getElementById("status-bar").textContent =
-        `🏆 ${NAMES[playerIdx]} 赢得本局！`;
-    } else {
-      document.getElementById("status-bar").textContent =
-        `🏆 恭喜！你用了若干步猜中了 ${secret}！`;
-    }
-
-    document.getElementById("btn-new-round").style.display = "inline-block";
-    return;
-  }
-
-  // Wrong guess
-  const hint = val < secret ? "📈 猜小了" : "📉 猜大了";
-  hintEl.textContent     = val < secret ? "⬆️" : "⬇️";
-  hintTextEl.textContent = hint;
-
-  const entry = document.createElement("div");
-  entry.textContent = `${val} → ${val < secret ? "小了" : "大了"}`;
-  historyEl.prepend(entry);
-
-  // Switch player in 2-player mode
-  if (numPlayers === 2) {
-    activatePlayer(1 - playerIdx);
-  }
-}
-
-function updateScore(i) {
-  document.getElementById(`score-${i}`).textContent = `得分: ${scores[i]}`;
-}
+startNewGame();
 </script>
 </body>
 </html>
