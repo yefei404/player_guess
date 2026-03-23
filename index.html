@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>双人猜数字 - Player Guess</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 8px;
+      color: #e94560;
+    }
+
+    #subtitle {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    #game-container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    /* ——— SETUP SCREEN ——— */
+    #setup-screen {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    #setup-screen label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+      color: #ccc;
+    }
+
+    #setup-screen input[type=number] {
+      width: 120px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #0f3460;
+      background: #0f3460;
+      color: #fff;
+      font-size: 1.1rem;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #setup-screen input:focus { outline: none; border-color: #e94560; }
+
+    .mode-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .mode-btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .mode-btn:active { transform: scale(0.96); }
+
+    #btn-p1 { background: #e94560; color: #fff; }
+    #btn-p2 { background: #0f3460; color: #fff; border: 2px solid #e94560; }
+
+    /* ——— PLAY SCREEN ——— */
+    #play-screen { display: none; }
+
+    .players-wrap {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+    }
+
+    /* Stack vertically on narrow screens */
+    @media (max-width: 520px) {
+      .players-wrap { flex-direction: column; }
+    }
+
+    .player-panel {
+      flex: 1;
+      background: #16213e;
+      border-radius: 16px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .player-panel.active { border-color: #e94560; }
+    .player-panel.winner { border-color: #f0c040; background: #1e1e0e; }
+
+    .player-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .player-score {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .hint-display {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      min-height: 2.4rem;
+    }
+
+    .hint-text {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 14px;
+      min-height: 1.2rem;
+    }
+
+    .guess-history {
+      width: 100%;
+      max-height: 120px;
+      overflow-y: auto;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+      color: #bbb;
+      text-align: left;
+      padding: 0 4px;
+    }
+
+    .guess-history div { padding: 2px 0; border-bottom: 1px solid #0f3460; }
+    .guess-history div.win { color: #f0c040; font-weight: 700; }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .guess-input {
+      flex: 1;
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 2px solid #0f3460;
+      background: #0f3460;
+      color: #fff;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+
+    .guess-input:focus { outline: none; border-color: #e94560; }
+    .guess-input:disabled { opacity: 0.4; }
+
+    .submit-btn {
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: none;
+      background: #e94560;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .submit-btn:active { transform: scale(0.95); }
+    .submit-btn:disabled { background: #555; cursor: default; }
+
+    /* ——— STATUS BAR ——— */
+    #status-bar {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 1rem;
+      color: #e94560;
+      min-height: 1.4rem;
+    }
+
+    /* ——— CONTROLS ——— */
+    #controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #btn-restart { background: #0f3460; color: #fff; }
+    #btn-new-round { background: #e94560; color: #fff; }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+
+  <!-- SETUP -->
+  <div id="setup-screen">
+    <h1>🎯 双人猜数字</h1>
+    <p id="subtitle">两人轮流猜，先猜中者得分！</p>
+
+    <label for="max-num">数字范围：1 ~ ?</label>
+    <input type="number" id="max-num" value="100" min="10" max="9999" />
+
+    <p style="margin-bottom:16px; font-size:0.9rem; color:#888;">选择游戏模式</p>
+    <div class="mode-buttons">
+      <button class="mode-btn" id="btn-p1" onclick="startGame(1)">🧑 单人模式<br><small style="font-weight:400">挑战最少步数</small></button>
+      <button class="mode-btn" id="btn-p2" onclick="startGame(2)">👥 双人模式<br><small style="font-weight:400">iPad 双人对战</small></button>
+    </div>
+  </div>
+
+  <!-- PLAY -->
+  <div id="play-screen">
+    <div class="players-wrap" id="players-wrap">
+      <!-- panels injected by JS -->
+    </div>
+    <div id="status-bar"></div>
+    <div id="controls">
+      <button class="ctrl-btn" id="btn-restart" onclick="backToSetup()">⚙️ 重新设置</button>
+      <button class="ctrl-btn" id="btn-new-round" onclick="newRound()" style="display:none">▶️ 下一局</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+let secret, maxNum, numPlayers, currentPlayer, roundOver;
+let scores = [0, 0];
+let roundCount = 0;
+
+const NAMES = ["玩家 1", "玩家 2"];
+const COLORS = ["#e94560", "#4ec9b0"];
+
+/* =========================================================
+   SETUP
+   ========================================================= */
+function startGame(players) {
+  maxNum = parseInt(document.getElementById("max-num").value) || 100;
+  if (maxNum < 10) maxNum = 10;
+  numPlayers = players;
+  scores = [0, 0];
+  roundCount = 0;
+
+  document.getElementById("setup-screen").style.display = "none";
+  document.getElementById("play-screen").style.display = "block";
+
+  buildPanels();
+  newRound();
+}
+
+function backToSetup() {
+  document.getElementById("setup-screen").style.display = "block";
+  document.getElementById("play-screen").style.display = "none";
+}
+
+/* =========================================================
+   PANELS
+   ========================================================= */
+function buildPanels() {
+  const wrap = document.getElementById("players-wrap");
+  wrap.innerHTML = "";
+
+  const count = numPlayers === 1 ? 1 : 2;
+  for (let i = 0; i < count; i++) {
+    wrap.innerHTML += `
+      <div class="player-panel" id="panel-${i}">
+        <div class="player-name" style="color:${COLORS[i]}">${NAMES[i]}</div>
+        <div class="player-score" id="score-${i}">得分: 0</div>
+        <div class="hint-display" id="hint-${i}">🎯</div>
+        <div class="hint-text" id="hint-text-${i}"></div>
+        <div class="guess-history" id="history-${i}"></div>
+        <div class="input-row">
+          <input class="guess-input" type="number" id="input-${i}"
+            placeholder="1 ~ ${maxNum}" min="1" max="${maxNum}"
+            onkeydown="if(event.key==='Enter') submitGuess(${i})" />
+          <button class="submit-btn" id="btn-${i}" onclick="submitGuess(${i})">猜！</button>
+        </div>
+      </div>`;
+  }
+}
+
+/* =========================================================
+   ROUND
+   ========================================================= */
+function newRound() {
+  secret = Math.floor(Math.random() * maxNum) + 1;
+  roundOver = false;
+  roundCount++;
+  currentPlayer = 0;
+
+  document.getElementById("status-bar").textContent = `第 ${roundCount} 局 — 数字范围 1 ~ ${maxNum}`;
+  document.getElementById("btn-new-round").style.display = "none";
+
+  const count = numPlayers === 1 ? 1 : 2;
+  for (let i = 0; i < count; i++) {
+    document.getElementById(`hint-${i}`).textContent = "🎯";
+    document.getElementById(`hint-text-${i}`).textContent = "";
+    document.getElementById(`history-${i}`).innerHTML = "";
+    document.getElementById(`input-${i}`).value = "";
+    document.getElementById(`panel-${i}`).className = "player-panel";
+    updateScore(i);
+  }
+
+  activatePlayer(0);
+}
+
+/* =========================================================
+   TURN
+   ========================================================= */
+function activatePlayer(idx) {
+  const count = numPlayers === 1 ? 1 : 2;
+  for (let i = 0; i < count; i++) {
+    const input = document.getElementById(`input-${i}`);
+    const btn   = document.getElementById(`btn-${i}`);
+    const panel = document.getElementById(`panel-${i}`);
+
+    if (numPlayers === 1 || i === idx) {
+      input.disabled = false;
+      btn.disabled   = false;
+      panel.classList.add("active");
+      input.focus();
+    } else {
+      input.disabled = true;
+      btn.disabled   = true;
+      panel.classList.remove("active");
+    }
+  }
+  currentPlayer = idx;
+
+  if (numPlayers === 2) {
+    document.getElementById("status-bar").textContent =
+      `第 ${roundCount} 局 ▸ 轮到 ${NAMES[idx]} 猜！`;
+  }
+}
+
+/* =========================================================
+   GUESS
+   ========================================================= */
+function submitGuess(playerIdx) {
+  if (roundOver) return;
+  if (numPlayers === 2 && playerIdx !== currentPlayer) return;
+
+  const input = document.getElementById(`input-${playerIdx}`);
+  const val   = parseInt(input.value);
+
+  if (!val || val < 1 || val > maxNum) {
+    input.focus();
+    return;
+  }
+  input.value = "";
+
+  const hintEl     = document.getElementById(`hint-${playerIdx}`);
+  const hintTextEl = document.getElementById(`hint-text-${playerIdx}`);
+  const historyEl  = document.getElementById(`history-${playerIdx}`);
+
+  if (val === secret) {
+    hintEl.textContent     = "🎉";
+    hintTextEl.textContent = `答对了！答案是 ${secret}`;
+    const entry = document.createElement("div");
+    entry.className = "win";
+    entry.textContent = `✅ ${val} — 猜中！`;
+    historyEl.prepend(entry);
+
+    scores[playerIdx]++;
+    updateScore(playerIdx);
+    roundOver = true;
+
+    document.getElementById(`panel-${playerIdx}`).classList.remove("active");
+    document.getElementById(`panel-${playerIdx}`).classList.add("winner");
+    document.getElementById(`input-${playerIdx}`).disabled  = true;
+    document.getElementById(`btn-${playerIdx}`).disabled    = true;
+
+    if (numPlayers === 2) {
+      const other = 1 - playerIdx;
+      document.getElementById(`input-${other}`).disabled = true;
+      document.getElementById(`btn-${other}`).disabled   = true;
+      document.getElementById(`panel-${other}`).classList.remove("active");
+      document.getElementById("status-bar").textContent =
+        `🏆 ${NAMES[playerIdx]} 赢得本局！`;
+    } else {
+      document.getElementById("status-bar").textContent =
+        `🏆 恭喜！你用了若干步猜中了 ${secret}！`;
+    }
+
+    document.getElementById("btn-new-round").style.display = "inline-block";
+    return;
+  }
+
+  // Wrong guess
+  const hint = val < secret ? "📈 猜小了" : "📉 猜大了";
+  hintEl.textContent     = val < secret ? "⬆️" : "⬇️";
+  hintTextEl.textContent = hint;
+
+  const entry = document.createElement("div");
+  entry.textContent = `${val} → ${val < secret ? "小了" : "大了"}`;
+  historyEl.prepend(entry);
+
+  // Switch player in 2-player mode
+  if (numPlayers === 2) {
+    activatePlayer(1 - playerIdx);
+  }
+}
+
+function updateScore(i) {
+  document.getElementById(`score-${i}`).textContent = `得分: ${scores[i]}`;
+}
+</script>
+</body>
+</html>
