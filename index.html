@@ -223,6 +223,29 @@
 
     #btn-restart { background: #0f3460; color: #fff; }
     #btn-new-round { background: #e94560; color: #fff; }
+
+    /* ——— CONTROLLER KEY BADGE ——— */
+    .ctrl-key-badge {
+      display: inline-block;
+      background: #0f3460;
+      border: 1px solid #e94560;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      color: #e94560;
+      font-family: monospace;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    /* ——— GAMEPAD STATUS ——— */
+    .gamepad-status {
+      font-size: 0.75rem;
+      color: #555;
+      margin-bottom: 6px;
+      transition: color 0.3s;
+    }
+    .gamepad-status.connected { color: #4ec9b0; }
   </style>
 </head>
 <body>
@@ -270,6 +293,68 @@ const NAMES = ["玩家 1", "玩家 2"];
 const COLORS = ["#e94560", "#4ec9b0"];
 
 /* =========================================================
+   DUAL-CONTROLLER: KEYBOARD MAPPING
+   P1 → Enter key   P2 → Backslash key
+   ========================================================= */
+const PLAYER_SUBMIT_KEYS = ["Enter", "\\"];
+
+function handleKeyDown(event, playerIdx) {
+  if (event.key === "Enter") {
+    submitGuess(playerIdx);
+  }
+}
+
+// Global keydown for Player 2's backslash shortcut
+document.addEventListener("keydown", function (e) {
+  if (!roundOver && numPlayers === 2 && e.key === "\\" && currentPlayer === 1) {
+    e.preventDefault();
+    submitGuess(1);
+  }
+});
+
+/* =========================================================
+   DUAL-CONTROLLER: GAMEPAD API
+   Gamepad 0 → Player 1   Gamepad 1 → Player 2
+   Button 0 (A/Cross) = submit guess
+   ========================================================= */
+const gamepadPrevButtons = [false, false]; // debounce A-button per gamepad
+
+function pollGamepads() {
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (let gIdx = 0; gIdx < 2; gIdx++) {
+    const gp = gamepads[gIdx];
+    const statusEl = document.getElementById(`gamepad-status-${gIdx}`);
+    if (!statusEl) continue;
+
+    if (gp && gp.connected) {
+      statusEl.textContent = `🎮 手柄 ${gIdx + 1} 已连接`;
+      statusEl.classList.add("connected");
+
+      // Button 0 = A (Xbox) / Cross (PS) — submit on press (not hold)
+      const aPressed = gp.buttons[0] && gp.buttons[0].pressed;
+      if (aPressed && !gamepadPrevButtons[gIdx]) {
+        if (!roundOver && (numPlayers === 1 || currentPlayer === gIdx)) {
+          submitGuess(gIdx);
+        }
+      }
+      gamepadPrevButtons[gIdx] = aPressed;
+    } else {
+      statusEl.textContent = "🎮 手柄未连接";
+      statusEl.classList.remove("connected");
+      gamepadPrevButtons[gIdx] = false;
+    }
+  }
+  requestAnimationFrame(pollGamepads);
+}
+
+window.addEventListener("gamepadconnected", function (e) {
+  console.log("Gamepad connected:", e.gamepad.id);
+});
+
+// Start gamepad polling
+requestAnimationFrame(pollGamepads);
+
+/* =========================================================
    SETUP
    ========================================================= */
 function startGame(players) {
@@ -307,10 +392,12 @@ function buildPanels() {
         <div class="hint-display" id="hint-${i}">🎯</div>
         <div class="hint-text" id="hint-text-${i}"></div>
         <div class="guess-history" id="history-${i}"></div>
+        <div class="gamepad-status" id="gamepad-status-${i}">🎮 手柄未连接</div>
+        <div class="ctrl-key-badge" id="ctrl-key-${i}">⌨️ ${PLAYER_SUBMIT_KEYS[i] === "Enter" ? "↵ Enter" : "\\ 反斜线"} · 🎮 A 键</div>
         <div class="input-row">
           <input class="guess-input" type="number" id="input-${i}"
             placeholder="1 ~ ${maxNum}" min="1" max="${maxNum}"
-            onkeydown="if(event.key==='Enter') submitGuess(${i})" />
+            onkeydown="handleKeyDown(event, ${i})" />
           <button class="submit-btn" id="btn-${i}" onclick="submitGuess(${i})">猜！</button>
         </div>
       </div>`;
@@ -324,6 +411,8 @@ function newRound() {
   secret = Math.floor(Math.random() * maxNum) + 1;
   roundOver = false;
   roundCount++;
+  gamepadPrevButtons[0] = false;
+  gamepadPrevButtons[1] = false;
   currentPlayer = 0;
 
   document.getElementById("status-bar").textContent = `第 ${roundCount} 局 — 数字范围 1 ~ ${maxNum}`;
